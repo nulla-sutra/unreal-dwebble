@@ -1,0 +1,7 @@
+# Rust build artifacts
+/target/
+
+# Cargo lock file (uncomment if this is a library)
+Cargo.lock
+
+.idea

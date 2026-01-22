@@ -1,0 +1,23 @@
+﻿{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "1.0",
+	"FriendlyName": "Dwebble",
+	"Description": "",
+	"Category": "Other",
+	"CreatedBy": " tarnishablec@outlook.com",
+	"CreatedByURL": "https://github.com/nulla-sutra",
+	"DocsURL": "",
+	"MarketplaceURL": "",
+	"CanContainContent": true,
+	"IsBetaVersion": true,
+	"IsExperimentalVersion": false,
+	"Installed": false,
+	"Modules": [
+		{
+			"Name": "Dwebble",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		}
+	]
+}
