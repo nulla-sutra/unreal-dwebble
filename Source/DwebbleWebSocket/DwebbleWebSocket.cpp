@@ -1,6 +1,6 @@
 ﻿// Copyright 2024 tarnishablec. All Rights Reserved.
 
-#include "Dwebble.h"
+#include "DwebbleWebSocket.h"
 #include "Interfaces/IPluginManager.h"
 #include "Misc/Paths.h"
 #include "HAL/PlatformProcess.h"
@@ -9,7 +9,7 @@
 
 void* GDwebbleRwsDllHandle = nullptr;
 
-void FDwebbleModule::StartupModule()
+void FDwebbleWebSocketModule::StartupModule()
 {
 	// Load the Rust DLL
 	const FString PluginDir = IPluginManager::Get().FindPlugin(TEXT("Dwebble"))->GetBaseDir();
@@ -33,7 +33,7 @@ void FDwebbleModule::StartupModule()
 	}
 }
 
-void FDwebbleModule::ShutdownModule()
+void FDwebbleWebSocketModule::ShutdownModule()
 {
 	if (GDwebbleRwsDllHandle)
 	{
@@ -45,4 +45,4 @@ void FDwebbleModule::ShutdownModule()
 
 #undef LOCTEXT_NAMESPACE
 
-IMPLEMENT_MODULE(FDwebbleModule, Dwebble)
+IMPLEMENT_MODULE(FDwebbleWebSocketModule, DwebbleWebSocket)

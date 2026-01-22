@@ -4,13 +4,13 @@ using System.IO;
 using UnrealBuildTool;
 // ReSharper disable RedundantExplicitArrayCreation
 
-public class Dwebble : ModuleRules
+public class DwebbleWebSocket : ModuleRules
 {
-	public Dwebble(ReadOnlyTargetRules Target) : base(Target)
+	public DwebbleWebSocket(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 
-		// Add Rust FFI header include path (dwebble-rws is now under Source/)
+		// Add Rust FFI header `include` (dwebble-rws is now under Source/)
 		var RustIncludeDir = Path.Combine(PluginDirectory, "Source", "dwebble-rws", "include");
 		PublicIncludePaths.Add(RustIncludeDir);
 

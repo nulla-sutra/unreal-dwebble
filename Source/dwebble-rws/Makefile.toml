@@ -1,0 +1,114 @@
+# cargo-make configuration for dwebble-rws
+# Usage:
+#   cargo make dev                          - Debug build + copy DLL
+#   cargo make release                      - Release build + copy DLL
+#   cargo make release -e TARGET=<triple>   - Cross-compile release
+
+[config]
+default_to_workspace = false
+
+# =============================================================================
+# Build Tasks
+# =============================================================================
+
+[tasks.build-debug]
+command = "cargo"
+args = ["build", "@@split(CARGO_BUILD_ARGS, )"]
+
+[tasks.build-release]
+command = "cargo"
+args = ["build", "--release", "@@split(CARGO_BUILD_ARGS, )"]
+
+# =============================================================================
+# Copy Tasks
+# =============================================================================
+
+[tasks.copy-dll]
+private = true
+script_runner = "@duckscript"
+script = '''
+crate_dir = get_env CARGO_MAKE_WORKING_DIRECTORY
+profile = get_env PROFILE
+target = get_env TARGET
+
+# Build target directory path
+# Native:        target/<profile>/
+# Cross-compile: target/<target>/<profile>/
+if is_empty ${target}
+    target_dir = join_path ${crate_dir} target ${profile}
+else
+    target_dir = join_path ${crate_dir} target ${target} ${profile}
+end
+
+# Determine output Binaries directory based on target
+platform_dir = set Win64
+if not is_empty ${target}
+    is_arm = contains ${target} aarch64-pc-windows
+    if ${is_arm}
+        platform_dir = set WinArm64
+    end
+end
+
+source_dir = dirname ${crate_dir}
+plugin_dir = dirname ${source_dir}
+bin_dir = join_path ${plugin_dir} Binaries ${platform_dir}
+
+# Create output directory
+mkdir ${bin_dir}
+
+echo Source: ${target_dir}
+echo Target: ${bin_dir}
+
+# Copy DLL
+dll_src = join_path ${target_dir} dwebble_rws.dll
+dll_dst = join_path ${bin_dir} dwebble_rws.dll
+if is_path_exists ${dll_src}
+    cp ${dll_src} ${dll_dst}
+    echo "  Copied: dwebble_rws.dll"
+else
+    echo "  Not found: dwebble_rws.dll"
+end
+
+# Copy import library
+lib_src = join_path ${target_dir} dwebble_rws.dll.lib
+lib_dst = join_path ${bin_dir} dwebble_rws.dll.lib
+if is_path_exists ${lib_src}
+    cp ${lib_src} ${lib_dst}
+    echo "  Copied: dwebble_rws.dll.lib"
+else
+    echo "  Not found: dwebble_rws.dll.lib"
+end
+
+echo Done!
+'''
+
+# =============================================================================
+# Main Tasks
+# =============================================================================
+
+[tasks.set-target-args]
+private = true
+script_runner = "@duckscript"
+script = '''
+target = get_env TARGET
+if not is_empty ${target}
+    set_env CARGO_BUILD_ARGS "--target ${target}"
+else
+    set_env CARGO_BUILD_ARGS ""
+end
+'''
+
+[tasks.dev]
+description = "Build debug and copy DLL to plugin Binaries"
+dependencies = ["set-target-args", "build-debug"]
+env = { PROFILE = "debug" }
+run_task = "copy-dll"
+
+[tasks.release]
+description = "Build release and copy DLL to plugin Binaries"
+dependencies = ["set-target-args", "build-release"]
+env = { PROFILE = "release" }
+run_task = "copy-dll"
+
+[tasks.default]
+alias = "dev"

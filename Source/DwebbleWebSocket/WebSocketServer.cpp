@@ -35,7 +35,11 @@ public:
 
 		// Convert config to FFI struct
 		const auto BindAddressAnsi = StringCast<ANSICHAR>(*Config.BindAddress);
-		const auto SubprotocolsAnsi = StringCast<ANSICHAR>(*Config.Subprotocols);
+
+		// Join subprotocols into a comma-separated string
+		const FString SubprotocolsJoined = FString::Join(Config.Subprotocols, TEXT(","));
+		const auto SubprotocolsAnsi = StringCast<ANSICHAR>(*SubprotocolsJoined);
+
 		const auto CertPathAnsi = StringCast<ANSICHAR>(*Config.TlsCertPath);
 		const auto KeyPathAnsi = StringCast<ANSICHAR>(*Config.TlsKeyPath);
 
@@ -53,7 +57,7 @@ public:
 		}
 
 		const DwebbleWSResult Result = dwebble_rws_server_start(ServerHandle);
-		if (Result == DwebbleWSResult::DWEBBLE_WS_RESULT_OK)
+		if (Result == DwebbleWSResult::Ok)
 		{
 			bIsRunning = true;
 		}
@@ -103,7 +107,7 @@ public:
 		return Result;
 	}
 
-	virtual DwebbleWS::EResult Send(uint64 ConnectionId, const TArray<uint8>& Data) override
+	virtual DwebbleWS::EResult Send(const uint64 ConnectionId, const TArray<uint8>& Data) override
 	{
 		if (!ServerHandle) return DwebbleWS::EResult::InvalidHandle;
 
@@ -117,19 +121,7 @@ public:
 		return ConvertResult(Result);
 	}
 
-	virtual DwebbleWS::EResult SendText(uint64 ConnectionId, const FString& Text) override
-	{
-		if (!ServerHandle) return DwebbleWS::EResult::InvalidHandle;
-
-		const auto TextAnsi = StringCast<ANSICHAR>(*Text);
-		const DwebbleWSResult Result = dwebble_rws_server_send_text(
-			ServerHandle,
-			ConnectionId,
-			TextAnsi.Get()
-		);
-
-		return ConvertResult(Result);
-	}
+	virtual DwebbleWS::EResult SendText(uint64 ConnectionId, const FString& Text) override;
 
 	virtual DwebbleWS::EResult Disconnect(const uint64 ConnectionId) override
 	{
@@ -143,28 +135,28 @@ public:
 	{
 		if (!ServerHandle) return false;
 
-		DwebbleWSEvent FfiEvent;
-		if (!dwebble_rws_server_poll(ServerHandle, &FfiEvent))
+		DwebbleWSEvent Event;
+		if (!dwebble_rws_server_poll(ServerHandle, &Event))
 		{
 			return false;
 		}
 
-		OutEvent.EventType = ConvertEventType(FfiEvent.event_type);
-		OutEvent.ConnectionId = FfiEvent.connection_id;
+		OutEvent.EventType = ConvertEventType(Event.event_type);
+		OutEvent.ConnectionId = Event.connection_id;
 
-		if (FfiEvent.data && FfiEvent.data_len > 0)
+		if (Event.data && Event.data_len > 0)
 		{
-			OutEvent.Data.SetNumUninitialized(FfiEvent.data_len);
-			FMemory::Memcpy(OutEvent.Data.GetData(), FfiEvent.data, FfiEvent.data_len);
+			OutEvent.Data.SetNumUninitialized(Event.data_len);
+			FMemory::Memcpy(OutEvent.Data.GetData(), Event.data, Event.data_len);
 		}
 		else
 		{
 			OutEvent.Data.Empty();
 		}
 
-		if (FfiEvent.error_message)
+		if (Event.error_message)
 		{
-			OutEvent.ErrorMessage = UTF8_TO_TCHAR(FfiEvent.error_message);
+			OutEvent.ErrorMessage = UTF8_TO_TCHAR(Event.error_message);
 		}
 		else
 		{
@@ -179,29 +171,30 @@ private:
 	{
 		switch (Result)
 		{
-		case DwebbleWSResult::DWEBBLE_WS_RESULT_OK: return DwebbleWS::EResult::Ok;
-		case DwebbleWSResult::DWEBBLE_WS_RESULT_INVALID_HANDLE: return DwebbleWS::EResult::InvalidHandle;
-		case DwebbleWSResult::DWEBBLE_WS_RESULT_INVALID_PARAM: return DwebbleWS::EResult::InvalidParam;
-		case DwebbleWSResult::DWEBBLE_WS_RESULT_ALREADY_RUNNING: return DwebbleWS::EResult::AlreadyRunning;
-		case DwebbleWSResult::DWEBBLE_WS_RESULT_NOT_RUNNING: return DwebbleWS::EResult::NotRunning;
-		case DwebbleWSResult::DWEBBLE_WS_RESULT_BIND_FAILED: return DwebbleWS::EResult::BindFailed;
-		case DwebbleWSResult::DWEBBLE_WS_RESULT_TLS_ERROR: return DwebbleWS::EResult::TlsError;
-		case DwebbleWSResult::DWEBBLE_WS_RESULT_RUNTIME_ERROR: return DwebbleWS::EResult::RuntimeError;
-		case DwebbleWSResult::DWEBBLE_WS_RESULT_SEND_FAILED: return DwebbleWS::EResult::SendFailed;
-		case DwebbleWSResult::DWEBBLE_WS_RESULT_CONNECTION_CLOSED: return DwebbleWS::EResult::ConnectionClosed;
+		case DwebbleWSResult::Ok: return DwebbleWS::EResult::Ok;
+		case DwebbleWSResult::InvalidHandle: return DwebbleWS::EResult::InvalidHandle;
+		case DwebbleWSResult::InvalidParam: return DwebbleWS::EResult::InvalidParam;
+		case DwebbleWSResult::AlreadyRunning: return DwebbleWS::EResult::AlreadyRunning;
+		case DwebbleWSResult::NotRunning: return DwebbleWS::EResult::NotRunning;
+		case DwebbleWSResult::BindFailed: return DwebbleWS::EResult::BindFailed;
+		case DwebbleWSResult::TlsError: return DwebbleWS::EResult::TlsError;
+		case DwebbleWSResult::RuntimeError: return DwebbleWS::EResult::RuntimeError;
+		case DwebbleWSResult::SendFailed: return DwebbleWS::EResult::SendFailed;
+		case DwebbleWSResult::ConnectionClosed: return DwebbleWS::EResult::ConnectionClosed;
 		default: return DwebbleWS::EResult::RuntimeError;
 		}
 	}
 
-	static DwebbleWS::EEventType ConvertEventType(DwebbleWSEventType Type)
+	static DwebbleWS::EEventType ConvertEventType(const DwebbleWSEventType Type)
 	{
 		switch (Type)
 		{
-		case DwebbleWSEventType::DWEBBLE_WS_EVENT_TYPE_NONE: return DwebbleWS::EEventType::None;
-		case DwebbleWSEventType::DWEBBLE_WS_EVENT_TYPE_CLIENT_CONNECTED: return DwebbleWS::EEventType::ClientConnected;
-		case DwebbleWSEventType::DWEBBLE_WS_EVENT_TYPE_CLIENT_DISCONNECTED: return DwebbleWS::EEventType::ClientDisconnected;
-		case DwebbleWSEventType::DWEBBLE_WS_EVENT_TYPE_MESSAGE_RECEIVED: return DwebbleWS::EEventType::MessageReceived;
-		case DwebbleWSEventType::DWEBBLE_WS_EVENT_TYPE_ERROR: return DwebbleWS::EEventType::Error;
+		case DwebbleWSEventType::None: return DwebbleWS::EEventType::None;
+		case DwebbleWSEventType::ClientConnected: return DwebbleWS::EEventType::ClientConnected;
+		case DwebbleWSEventType::ClientDisconnected: return
+				DwebbleWS::EEventType::ClientDisconnected;
+		case DwebbleWSEventType::MessageReceived: return DwebbleWS::EEventType::MessageReceived;
+		case DwebbleWSEventType::Error: return DwebbleWS::EEventType::Error;
 		default: return DwebbleWS::EEventType::None;
 		}
 	}
@@ -210,6 +203,19 @@ private:
 	DwebbleWSServerHandle ServerHandle;
 	bool bIsRunning;
 };
+
+DwebbleWS::EResult FDwebbleWebSocketServerImpl::SendText(const uint64 ConnectionId, const FString& Text) {
+	if (!ServerHandle) return DwebbleWS::EResult::InvalidHandle;
+
+	const auto TextAnsi = StringCast<ANSICHAR>(*Text);
+	const DwebbleWSResult Result = dwebble_rws_server_send_text(
+		ServerHandle,
+		ConnectionId,
+		TextAnsi.Get()
+	);
+
+	return ConvertResult(Result);
+}
 
 TSharedPtr<DwebbleWS::IServer> DwebbleWS::IServer::Create(const FServerConfig& Config)
 {

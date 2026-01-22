@@ -10,7 +10,7 @@ namespace Dwebble::WebSocket
 	/**
 	 * WebSocket Server interface
 	 */
-	class DWEBBLE_API IServer
+	class DWEBBLEWEBSOCKET_API IServer
 	{
 	public:
 		virtual ~IServer() = default;

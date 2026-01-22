@@ -45,7 +45,7 @@ enum class EDwebbleWSResult : uint8
  * WebSocket server configuration
  */
 USTRUCT(BlueprintType)
-struct DWEBBLE_API FDwebbleWSServerConfig
+struct DWEBBLEWEBSOCKET_API FDwebbleWSServerConfig
 {
 	GENERATED_BODY()
 
@@ -57,9 +57,9 @@ struct DWEBBLE_API FDwebbleWSServerConfig
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FString BindAddress = TEXT("127.0.0.1");
 
-	/** Subprotocols to support (comma-separated) */
+	/** Subprotocols to support */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FString Subprotocols;
+	TArray<FString> Subprotocols;
 
 	/** Path to a TLS certificate file (PEM format). Empty for no TLS. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -77,7 +77,7 @@ struct DWEBBLE_API FDwebbleWSServerConfig
  * WebSocket event data
  */
 USTRUCT(BlueprintType)
-struct DWEBBLE_API FDwebbleWSEvent
+struct DWEBBLEWEBSOCKET_API FDwebbleWSEvent
 {
 	GENERATED_BODY()
 

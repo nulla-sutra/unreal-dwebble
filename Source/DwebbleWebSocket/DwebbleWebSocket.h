@@ -4,7 +4,7 @@
 
 #include "Modules/ModuleManager.h"
 
-class FDwebbleModule : public IModuleInterface
+class FDwebbleWebSocketModule : public IModuleInterface
 {
 public:
 

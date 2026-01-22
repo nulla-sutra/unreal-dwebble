@@ -1,6 +1,13 @@
 //! FFI entry points for dwebble-rws
 //!
 //! All functions use the `dwebble_rws_` prefix to avoid naming conflicts.
+//!
+//! # Safety
+//!
+//! All FFI functions are marked `unsafe` as they require the caller to ensure:
+//! - Pointers are valid and properly aligned
+//! - Pointers remain valid for the duration of the call
+//! - String pointers are null-terminated UTF-8
 
 mod connection;
 mod server;
@@ -35,18 +42,25 @@ pub extern "C" fn dwebble_rws_init_tracing() {
 
 /// Create a new WebSocket server with the given configuration.
 /// Returns a server handle or null on failure.
+///
+/// # Safety
+///
+/// - `config` must be a valid pointer to a `DwebbleWSServerConfig`
+/// - All string fields in `config` must be valid null-terminated UTF-8 or null
 #[no_mangle]
-pub extern "C" fn dwebble_rws_server_create(config: *const DwebbleWSServerConfig) -> DwebbleWSServerHandle {
+pub unsafe extern "C" fn dwebble_rws_server_create(
+    config: *const DwebbleWSServerConfig,
+) -> DwebbleWSServerHandle {
     if config.is_null() {
         return ptr::null_mut();
     }
 
-    let config = unsafe { &*config };
+    let config = &*config;
 
     let bind_address = if config.bind_address.is_null() {
         "127.0.0.1".to_string()
     } else {
-        unsafe { CStr::from_ptr(config.bind_address) }
+        CStr::from_ptr(config.bind_address)
             .to_string_lossy()
             .into_owned()
     };
@@ -54,8 +68,7 @@ pub extern "C" fn dwebble_rws_server_create(config: *const DwebbleWSServerConfig
     let subprotocols = if config.subprotocols.is_null() {
         vec![]
     } else {
-        let s = unsafe { CStr::from_ptr(config.subprotocols) }
-            .to_string_lossy();
+        let s = CStr::from_ptr(config.subprotocols).to_string_lossy();
         s.split(',')
             .map(|s| s.trim().to_string())
             .filter(|s| !s.is_empty())
@@ -63,10 +76,8 @@ pub extern "C" fn dwebble_rws_server_create(config: *const DwebbleWSServerConfig
     };
 
     let tls = if !config.tls_cert_path.is_null() && !config.tls_key_path.is_null() {
-        let cert_path = unsafe { CStr::from_ptr(config.tls_cert_path) }
-            .to_string_lossy();
-        let key_path = unsafe { CStr::from_ptr(config.tls_key_path) }
-            .to_string_lossy();
+        let cert_path = CStr::from_ptr(config.tls_cert_path).to_string_lossy();
+        let key_path = CStr::from_ptr(config.tls_key_path).to_string_lossy();
 
         match TlsConfig::from_pem_files(&cert_path, &key_path) {
             Ok(tls) => Some(tls),
@@ -91,41 +102,57 @@ pub extern "C" fn dwebble_rws_server_create(config: *const DwebbleWSServerConfig
 }
 
 /// Destroy a server handle and free resources.
+///
+/// # Safety
+///
+/// - `handle` must be a valid handle returned by `dwebble_rws_server_create`, or null
+/// - `handle` must not be used after this call
 #[no_mangle]
-pub extern "C" fn dwebble_rws_server_destroy(handle: DwebbleWSServerHandle) {
+pub unsafe extern "C" fn dwebble_rws_server_destroy(handle: DwebbleWSServerHandle) {
     if !handle.is_null() {
-        unsafe {
-            let _ = Box::from_raw(handle as *mut Server);
-        }
+        let _ = Box::from_raw(handle as *mut Server);
     }
 }
 
 /// Start the WebSocket server.
+///
+/// # Safety
+///
+/// - `handle` must be a valid handle returned by `dwebble_rws_server_create`
 #[no_mangle]
-pub extern "C" fn dwebble_rws_server_start(handle: DwebbleWSServerHandle) -> DwebbleWSResult {
+pub unsafe extern "C" fn dwebble_rws_server_start(handle: DwebbleWSServerHandle) -> DwebbleWSResult {
     if handle.is_null() {
         return DwebbleWSResult::InvalidHandle;
     }
 
-    let server = unsafe { &mut *(handle as *mut Server) };
+    let server = &mut *(handle as *mut Server);
     server.start()
 }
 
 /// Stop the WebSocket server.
+///
+/// # Safety
+///
+/// - `handle` must be a valid handle returned by `dwebble_rws_server_create`
 #[no_mangle]
-pub extern "C" fn dwebble_rws_server_stop(handle: DwebbleWSServerHandle) -> DwebbleWSResult {
+pub unsafe extern "C" fn dwebble_rws_server_stop(handle: DwebbleWSServerHandle) -> DwebbleWSResult {
     if handle.is_null() {
         return DwebbleWSResult::InvalidHandle;
     }
 
-    let server = unsafe { &mut *(handle as *mut Server) };
+    let server = &mut *(handle as *mut Server);
     server.stop()
 }
 
 /// Poll for the next event. Returns the event in the out parameter.
 /// Returns true if an event was available, false otherwise.
+///
+/// # Safety
+///
+/// - `handle` must be a valid handle returned by `dwebble_rws_server_create`
+/// - `out_event` must be a valid pointer to a `DwebbleWSEvent`
 #[no_mangle]
-pub extern "C" fn dwebble_rws_server_poll(
+pub unsafe extern "C" fn dwebble_rws_server_poll(
     handle: DwebbleWSServerHandle,
     out_event: *mut DwebbleWSEvent,
 ) -> bool {
@@ -133,7 +160,7 @@ pub extern "C" fn dwebble_rws_server_poll(
         return false;
     }
 
-    let server = unsafe { &*(handle as *const Server) };
+    let server = &*(handle as *const Server);
 
     if let Some(event) = server.poll_event() {
         let mut event_data = CURRENT_EVENT_DATA.lock();
@@ -170,26 +197,27 @@ pub extern "C" fn dwebble_rws_server_poll(
             error_ptr = ptr::null();
         }
 
-        unsafe {
-            (*out_event).event_type = event.event_type;
-            (*out_event).connection_id = event.connection_id;
-            (*out_event).data = data_ptr;
-            (*out_event).data_len = data_len;
-            (*out_event).error_message = error_ptr;
-        }
+        (*out_event).event_type = event.event_type;
+        (*out_event).connection_id = event.connection_id;
+        (*out_event).data = data_ptr;
+        (*out_event).data_len = data_len;
+        (*out_event).error_message = error_ptr;
 
         true
     } else {
-        unsafe {
-            *out_event = DwebbleWSEvent::default();
-        }
+        *out_event = DwebbleWSEvent::default();
         false
     }
 }
 
 /// Send binary data to a specific connection.
+///
+/// # Safety
+///
+/// - `handle` must be a valid handle returned by `dwebble_rws_server_create`
+/// - `data` must be a valid pointer to `data_len` bytes
 #[no_mangle]
-pub extern "C" fn dwebble_rws_server_send(
+pub unsafe extern "C" fn dwebble_rws_server_send(
     handle: DwebbleWSServerHandle,
     connection_id: DwebbleWSConnectionId,
     data: *const u8,
@@ -199,15 +227,20 @@ pub extern "C" fn dwebble_rws_server_send(
         return DwebbleWSResult::InvalidParam;
     }
 
-    let server = unsafe { &*(handle as *const Server) };
-    let data_slice = unsafe { std::slice::from_raw_parts(data, data_len) };
+    let server = &*(handle as *const Server);
+    let data_slice = std::slice::from_raw_parts(data, data_len);
 
     server.send(connection_id, data_slice)
 }
 
 /// Send text data to a specific connection.
+///
+/// # Safety
+///
+/// - `handle` must be a valid handle returned by `dwebble_rws_server_create`
+/// - `text` must be a valid null-terminated UTF-8 string
 #[no_mangle]
-pub extern "C" fn dwebble_rws_server_send_text(
+pub unsafe extern "C" fn dwebble_rws_server_send_text(
     handle: DwebbleWSServerHandle,
     connection_id: DwebbleWSConnectionId,
     text: *const c_char,
@@ -216,15 +249,19 @@ pub extern "C" fn dwebble_rws_server_send_text(
         return DwebbleWSResult::InvalidParam;
     }
 
-    let server = unsafe { &*(handle as *const Server) };
-    let text_str = unsafe { CStr::from_ptr(text) }.to_string_lossy();
+    let server = &*(handle as *const Server);
+    let text_str = CStr::from_ptr(text).to_string_lossy();
 
     server.send_text(connection_id, &text_str)
 }
 
 /// Disconnect a specific connection.
+///
+/// # Safety
+///
+/// - `handle` must be a valid handle returned by `dwebble_rws_server_create`
 #[no_mangle]
-pub extern "C" fn dwebble_rws_server_disconnect(
+pub unsafe extern "C" fn dwebble_rws_server_disconnect(
     handle: DwebbleWSServerHandle,
     connection_id: DwebbleWSConnectionId,
 ) -> DwebbleWSResult {
@@ -232,40 +269,54 @@ pub extern "C" fn dwebble_rws_server_disconnect(
         return DwebbleWSResult::InvalidHandle;
     }
 
-    let server = unsafe { &*(handle as *const Server) };
+    let server = &*(handle as *const Server);
     server.disconnect(connection_id)
 }
 
 /// Get the actual port the server is listening to.
+///
+/// # Safety
+///
+/// - `handle` must be a valid handle returned by `dwebble_rws_server_create`
 #[no_mangle]
-pub extern "C" fn dwebble_rws_server_get_port(handle: DwebbleWSServerHandle) -> u16 {
+pub unsafe extern "C" fn dwebble_rws_server_get_port(handle: DwebbleWSServerHandle) -> u16 {
     if handle.is_null() {
         return 0;
     }
 
-    let server = unsafe { &*(handle as *const Server) };
+    let server = &*(handle as *const Server);
     server.get_actual_port()
 }
 
 /// Get the number of active connections.
+///
+/// # Safety
+///
+/// - `handle` must be a valid handle returned by `dwebble_rws_server_create`
 #[no_mangle]
-pub extern "C" fn dwebble_rws_server_get_connection_count(handle: DwebbleWSServerHandle) -> usize {
+pub unsafe extern "C" fn dwebble_rws_server_get_connection_count(
+    handle: DwebbleWSServerHandle,
+) -> usize {
     if handle.is_null() {
         return 0;
     }
 
-    let server = unsafe { &*(handle as *const Server) };
+    let server = &*(handle as *const Server);
     server.get_connection_count()
 }
 
 /// Get server info string. Caller must free with `dwebble_rws_free_string`.
+///
+/// # Safety
+///
+/// - `handle` must be a valid handle returned by `dwebble_rws_server_create`
 #[no_mangle]
-pub extern "C" fn dwebble_rws_server_info(handle: DwebbleWSServerHandle) -> *mut c_char {
+pub unsafe extern "C" fn dwebble_rws_server_info(handle: DwebbleWSServerHandle) -> *mut c_char {
     if handle.is_null() {
         return ptr::null_mut();
     }
 
-    let server = unsafe { &*(handle as *const Server) };
+    let server = &*(handle as *const Server);
     let info = server.info();
 
     match CString::new(info) {
@@ -275,11 +326,14 @@ pub extern "C" fn dwebble_rws_server_info(handle: DwebbleWSServerHandle) -> *mut
 }
 
 /// Free a string allocated by this library.
+///
+/// # Safety
+///
+/// - `s` must be a string returned by `dwebble_rws_server_info`, or null
+/// - `s` must not be used after this call
 #[no_mangle]
-pub extern "C" fn dwebble_rws_free_string(s: *mut c_char) {
+pub unsafe extern "C" fn dwebble_rws_free_string(s: *mut c_char) {
     if !s.is_null() {
-        unsafe {
-            let _ = CString::from_raw(s);
-        }
+        let _ = CString::from_raw(s);
     }
 }
