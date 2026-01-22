@@ -10,7 +10,13 @@ Unreal Engine's built-in [WebSocketNetworking](https://github.com/EpicGames/Unre
 
 1. **No Subprotocol Support** - `IWebSocketServer::Init()` doesn't accept subprotocol parameters, making it incompatible with protocols like MCP (Model Context Protocol) that require specific subprotocols.
 
-2. **No Actual Port Retrieval** - `IWebSocketServer` supports ephemeral port (port 0), but provides no API to retrieve the actual assigned port after binding. See [related PR](https://github.com/EpicGames/UnrealEngine/pull/14298).
+2. **No Actual Port Retrieval** - `IWebSocketServer` supports ephemeral port (port 0), but provides no API to retrieve the actual assigned port after binding. See [related PR](https://github.com/EpicGames/UnrealEngine/pull/14308).
+
+<details>
+    <summary style="background-color:black; color:black;">
+    </summary>
+    Honestly, I just don't want to write a single extra line of C++.
+</details>
 
 ## Solution
 
