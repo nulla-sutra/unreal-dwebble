@@ -21,12 +21,12 @@ style = "both"
 
 [export]
 include = [
-    "DwebbleResult",
-    "DwebbleEventType",
-    "DwebbleServerConfig",
-    "DwebbleEvent",
-    "DwebbleServerHandle",
-    "DwebbleConnectionId",
+    "DwebbleWSResult",
+    "DwebbleWSEventType",
+    "DwebbleWSServerConfig",
+    "DwebbleWSEvent",
+    "DwebbleWSServerHandle",
+    "DwebbleWSConnectionId",
 ]
 prefix = ""
 

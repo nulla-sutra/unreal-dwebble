@@ -14,7 +14,9 @@ pub fn next_connection_id() -> u64 {
 /// Represents a single WebSocket connection
 pub struct Connection {
     pub id: u64,
+    #[allow(dead_code)]
     pub remote_addr: String,
+    #[allow(dead_code)]
     pub subprotocol: Option<String>,
     pub tx: mpsc::UnboundedSender<Message>,
 }

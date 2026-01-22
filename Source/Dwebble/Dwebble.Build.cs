@@ -10,8 +10,8 @@ public class Dwebble : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 
-		// Add Rust FFI header include a path
-		var RustIncludeDir = Path.Combine(PluginDirectory, "dwebble-rws", "include");
+		// Add Rust FFI header include path (dwebble-rws is now under Source/)
+		var RustIncludeDir = Path.Combine(PluginDirectory, "Source", "dwebble-rws", "include");
 		PublicIncludePaths.Add(RustIncludeDir);
 
 		PublicDependencyModuleNames.AddRange(

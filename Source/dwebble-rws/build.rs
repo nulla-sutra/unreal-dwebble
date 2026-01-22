@@ -47,7 +47,9 @@ fn generate_bindings(crate_path: &PathBuf) {
 
 fn copy_binaries_to_plugin(crate_path: &PathBuf, profile: &str) {
     let target_dir = crate_path.join("target").join(profile);
-    let binaries_dir = crate_path.parent().unwrap().join("Binaries").join("Win64");
+    // crate_path is Source/dwebble-rws, so we need to go up two levels to reach PluginDirectory
+    let plugin_dir = crate_path.parent().unwrap().parent().unwrap();
+    let binaries_dir = plugin_dir.join("Binaries").join("Win64");
 
     // Ensure the Binaries / Win64 directory exists
     fs::create_dir_all(&binaries_dir).ok();

@@ -15,12 +15,12 @@ use tokio_tungstenite::tungstenite::Message;
 
 use crate::connection::Connection;
 use crate::tls::TlsConfig;
-use crate::types::{DwebbleEventType, DwebbleResult};
+use crate::types::{DwebbleWSEventType, DwebbleWSResult};
 
 /// Internal event for the event queue
 #[derive(Debug)]
 pub struct ServerEvent {
-    pub event_type: DwebbleEventType,
+    pub event_type: DwebbleWSEventType,
     pub connection_id: u64,
     pub data: Option<Vec<u8>>,
     pub error: Option<String>,
@@ -71,14 +71,14 @@ impl Server {
         }
     }
 
-    pub fn start(&mut self) -> DwebbleResult {
+    pub fn start(&mut self) -> DwebbleWSResult {
         if self.runtime.is_some() {
-            return DwebbleResult::AlreadyRunning;
+            return DwebbleWSResult::AlreadyRunning;
         }
 
         let runtime = match tokio::runtime::Runtime::new() {
             Ok(rt) => rt,
-            Err(_) => return DwebbleResult::RuntimeError,
+            Err(_) => return DwebbleWSResult::RuntimeError,
         };
 
         let addr = format!("{}:{}", self.config.bind_address, self.config.port);
@@ -86,7 +86,7 @@ impl Server {
             Ok(l) => l,
             Err(e) => {
                 tracing::error!("Failed to bind to {}: {}", addr, e);
-                return DwebbleResult::BindFailed;
+                return DwebbleWSResult::BindFailed;
             }
         };
 
@@ -143,10 +143,10 @@ impl Server {
         });
 
         self.runtime = Some(runtime);
-        DwebbleResult::Ok
+        DwebbleWSResult::Ok
     }
 
-    pub fn stop(&mut self) -> DwebbleResult {
+    pub fn stop(&mut self) -> DwebbleWSResult {
         if let Some(shutdown_tx) = self.shutdown_tx.take() {
             let _ = self.runtime.as_ref().map(|rt| {
                 rt.block_on(async {
@@ -168,46 +168,46 @@ impl Server {
         }
 
         *self.actual_port.lock() = 0;
-        DwebbleResult::Ok
+        DwebbleWSResult::Ok
     }
 
     pub fn poll_event(&self) -> Option<ServerEvent> {
         self.event_rx.lock().try_recv().ok()
     }
 
-    pub fn send(&self, connection_id: u64, data: &[u8]) -> DwebbleResult {
+    pub fn send(&self, connection_id: u64, data: &[u8]) -> DwebbleWSResult {
         let conns = self.connections.lock();
         if let Some(conn) = conns.get(&connection_id) {
             if conn.send(data) {
-                DwebbleResult::Ok
+                DwebbleWSResult::Ok
             } else {
-                DwebbleResult::SendFailed
+                DwebbleWSResult::SendFailed
             }
         } else {
-            DwebbleResult::InvalidHandle
+            DwebbleWSResult::InvalidHandle
         }
     }
 
-    pub fn send_text(&self, connection_id: u64, text: &str) -> DwebbleResult {
+    pub fn send_text(&self, connection_id: u64, text: &str) -> DwebbleWSResult {
         let conns = self.connections.lock();
         if let Some(conn) = conns.get(&connection_id) {
             if conn.send_text(text) {
-                DwebbleResult::Ok
+                DwebbleWSResult::Ok
             } else {
-                DwebbleResult::SendFailed
+                DwebbleWSResult::SendFailed
             }
         } else {
-            DwebbleResult::InvalidHandle
+            DwebbleWSResult::InvalidHandle
         }
     }
 
-    pub fn disconnect(&self, connection_id: u64) -> DwebbleResult {
+    pub fn disconnect(&self, connection_id: u64) -> DwebbleWSResult {
         let mut conns = self.connections.lock();
         if let Some(conn) = conns.remove(&connection_id) {
             conn.close();
-            DwebbleResult::Ok
+            DwebbleWSResult::Ok
         } else {
-            DwebbleResult::InvalidHandle
+            DwebbleWSResult::InvalidHandle
         }
     }
 
@@ -284,12 +284,12 @@ where
     ));
     let connection_id = conn.id;
 
-    // Add to connections map
+    // Add to the connections map
     connections.lock().insert(connection_id, Arc::clone(&conn));
 
     // Notify connected
     let _ = event_tx.send(ServerEvent {
-        event_type: DwebbleEventType::ClientConnected,
+        event_type: DwebbleWSEventType::ClientConnected,
         connection_id,
         data: None,
         error: None,
@@ -317,7 +317,7 @@ where
             Ok(msg) => match msg {
                 Message::Binary(data) => {
                     let _ = event_tx.send(ServerEvent {
-                        event_type: DwebbleEventType::MessageReceived,
+                        event_type: DwebbleWSEventType::MessageReceived,
                         connection_id,
                         data: Some(data.to_vec()),
                         error: None,
@@ -325,7 +325,7 @@ where
                 }
                 Message::Text(text) => {
                     let _ = event_tx.send(ServerEvent {
-                        event_type: DwebbleEventType::MessageReceived,
+                        event_type: DwebbleWSEventType::MessageReceived,
                         connection_id,
                         data: Some(text.as_bytes().to_vec()),
                         error: None,
@@ -343,7 +343,7 @@ where
             Err(e) => {
                 tracing::error!("Read error from {}: {}", addr, e);
                 let _ = event_tx.send(ServerEvent {
-                    event_type: DwebbleEventType::Error,
+                    event_type: DwebbleWSEventType::Error,
                     connection_id,
                     data: None,
                     error: Some(e.to_string()),
@@ -358,7 +358,7 @@ where
     connections.lock().remove(&connection_id);
 
     let _ = event_tx.send(ServerEvent {
-        event_type: DwebbleEventType::ClientDisconnected,
+        event_type: DwebbleWSEventType::ClientDisconnected,
         connection_id,
         data: None,
         error: None,

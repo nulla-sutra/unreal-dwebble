@@ -2,10 +2,10 @@
 
 use std::ffi::{c_char, c_void};
 
-/// Result codes for FFI operations
+/// Result codes for WebSocket FFI operations
 #[repr(C)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum DwebbleResult {
+pub enum DwebbleWSResult {
     Ok = 0,
     InvalidHandle = 1,
     InvalidParam = 2,
@@ -18,10 +18,10 @@ pub enum DwebbleResult {
     ConnectionClosed = 9,
 }
 
-/// Event types for polling
+/// WebSocket event types for polling
 #[repr(C)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum DwebbleEventType {
+pub enum DwebbleWSEventType {
     None = 0,
     ClientConnected = 1,
     ClientDisconnected = 2,
@@ -29,9 +29,9 @@ pub enum DwebbleEventType {
     Error = 4,
 }
 
-/// Server configuration passed from C++
+/// WebSocket server configuration passed from C++
 #[repr(C)]
-pub struct DwebbleServerConfig {
+pub struct DwebbleWSServerConfig {
     /// Port to listen on (0 for auto)
     pub port: u16,
     /// Bind address (null-terminated UTF-8)
@@ -44,10 +44,10 @@ pub struct DwebbleServerConfig {
     pub tls_key_path: *const c_char,
 }
 
-/// Event data returned from polling
+/// WebSocket event data returned from polling
 #[repr(C)]
-pub struct DwebbleEvent {
-    pub event_type: DwebbleEventType,
+pub struct DwebbleWSEvent {
+    pub event_type: DwebbleWSEventType,
     /// Connection ID (valid for Connected/Disconnected/MessageReceived)
     pub connection_id: u64,
     /// Message data pointer (valid for MessageReceived)
@@ -58,10 +58,10 @@ pub struct DwebbleEvent {
     pub error_message: *const c_char,
 }
 
-impl Default for DwebbleEvent {
+impl Default for DwebbleWSEvent {
     fn default() -> Self {
         Self {
-            event_type: DwebbleEventType::None,
+            event_type: DwebbleWSEventType::None,
             connection_id: 0,
             data: std::ptr::null(),
             data_len: 0,
@@ -70,8 +70,8 @@ impl Default for DwebbleEvent {
     }
 }
 
-/// Server handle (opaque pointer)
-pub type DwebbleServerHandle = *mut c_void;
+/// WebSocket server handle (opaque pointer)
+pub type DwebbleWSServerHandle = *mut c_void;
 
-/// Connection handle
-pub type DwebbleConnectionId = u64;
+/// WebSocket connection handle
+pub type DwebbleWSConnectionId = u64;

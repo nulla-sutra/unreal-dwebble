@@ -1,6 +1,6 @@
 //! FFI entry points for dwebble-rws
 //!
-//! All functions use the `dwebble_rws _` prefix to avoid naming conflicts.
+//! All functions use the `dwebble_rws_` prefix to avoid naming conflicts.
 
 mod connection;
 mod server;
@@ -18,6 +18,7 @@ use crate::types::*;
 
 /// Stored event data for FFI (to keep strings alive)
 struct EventData {
+    #[allow(dead_code)]
     data: Vec<u8>,
     error: CString,
 }
@@ -35,7 +36,7 @@ pub extern "C" fn dwebble_rws_init_tracing() {
 /// Create a new WebSocket server with the given configuration.
 /// Returns a server handle or null on failure.
 #[no_mangle]
-pub extern "C" fn dwebble_rws_server_create(config: *const DwebbleServerConfig) -> DwebbleServerHandle {
+pub extern "C" fn dwebble_rws_server_create(config: *const DwebbleWSServerConfig) -> DwebbleWSServerHandle {
     if config.is_null() {
         return ptr::null_mut();
     }
@@ -86,12 +87,12 @@ pub extern "C" fn dwebble_rws_server_create(config: *const DwebbleServerConfig) 
     };
 
     let server = Box::new(Server::new(server_config));
-    Box::into_raw(server) as DwebbleServerHandle
+    Box::into_raw(server) as DwebbleWSServerHandle
 }
 
 /// Destroy a server handle and free resources.
 #[no_mangle]
-pub extern "C" fn dwebble_rws_server_destroy(handle: DwebbleServerHandle) {
+pub extern "C" fn dwebble_rws_server_destroy(handle: DwebbleWSServerHandle) {
     if !handle.is_null() {
         unsafe {
             let _ = Box::from_raw(handle as *mut Server);
@@ -101,9 +102,9 @@ pub extern "C" fn dwebble_rws_server_destroy(handle: DwebbleServerHandle) {
 
 /// Start the WebSocket server.
 #[no_mangle]
-pub extern "C" fn dwebble_rws_server_start(handle: DwebbleServerHandle) -> DwebbleResult {
+pub extern "C" fn dwebble_rws_server_start(handle: DwebbleWSServerHandle) -> DwebbleWSResult {
     if handle.is_null() {
-        return DwebbleResult::InvalidHandle;
+        return DwebbleWSResult::InvalidHandle;
     }
 
     let server = unsafe { &mut *(handle as *mut Server) };
@@ -112,9 +113,9 @@ pub extern "C" fn dwebble_rws_server_start(handle: DwebbleServerHandle) -> Dwebb
 
 /// Stop the WebSocket server.
 #[no_mangle]
-pub extern "C" fn dwebble_rws_server_stop(handle: DwebbleServerHandle) -> DwebbleResult {
+pub extern "C" fn dwebble_rws_server_stop(handle: DwebbleWSServerHandle) -> DwebbleWSResult {
     if handle.is_null() {
-        return DwebbleResult::InvalidHandle;
+        return DwebbleWSResult::InvalidHandle;
     }
 
     let server = unsafe { &mut *(handle as *mut Server) };
@@ -125,8 +126,8 @@ pub extern "C" fn dwebble_rws_server_stop(handle: DwebbleServerHandle) -> Dwebbl
 /// Returns true if an event was available, false otherwise.
 #[no_mangle]
 pub extern "C" fn dwebble_rws_server_poll(
-    handle: DwebbleServerHandle,
-    out_event: *mut DwebbleEvent,
+    handle: DwebbleWSServerHandle,
+    out_event: *mut DwebbleWSEvent,
 ) -> bool {
     if handle.is_null() || out_event.is_null() {
         return false;
@@ -137,9 +138,9 @@ pub extern "C" fn dwebble_rws_server_poll(
     if let Some(event) = server.poll_event() {
         let mut event_data = CURRENT_EVENT_DATA.lock();
 
-        let data_ptr;
-        let data_len;
-        let error_ptr;
+        let data_ptr: *const u8;
+        let data_len: usize;
+        let error_ptr: *const c_char;
 
         if let Some(data) = event.data {
             data_ptr = data.as_ptr();
@@ -180,7 +181,7 @@ pub extern "C" fn dwebble_rws_server_poll(
         true
     } else {
         unsafe {
-            *out_event = DwebbleEvent::default();
+            *out_event = DwebbleWSEvent::default();
         }
         false
     }
@@ -189,13 +190,13 @@ pub extern "C" fn dwebble_rws_server_poll(
 /// Send binary data to a specific connection.
 #[no_mangle]
 pub extern "C" fn dwebble_rws_server_send(
-    handle: DwebbleServerHandle,
-    connection_id: DwebbleConnectionId,
+    handle: DwebbleWSServerHandle,
+    connection_id: DwebbleWSConnectionId,
     data: *const u8,
     data_len: usize,
-) -> DwebbleResult {
+) -> DwebbleWSResult {
     if handle.is_null() || data.is_null() {
-        return DwebbleResult::InvalidParam;
+        return DwebbleWSResult::InvalidParam;
     }
 
     let server = unsafe { &*(handle as *const Server) };
@@ -207,12 +208,12 @@ pub extern "C" fn dwebble_rws_server_send(
 /// Send text data to a specific connection.
 #[no_mangle]
 pub extern "C" fn dwebble_rws_server_send_text(
-    handle: DwebbleServerHandle,
-    connection_id: DwebbleConnectionId,
+    handle: DwebbleWSServerHandle,
+    connection_id: DwebbleWSConnectionId,
     text: *const c_char,
-) -> DwebbleResult {
+) -> DwebbleWSResult {
     if handle.is_null() || text.is_null() {
-        return DwebbleResult::InvalidParam;
+        return DwebbleWSResult::InvalidParam;
     }
 
     let server = unsafe { &*(handle as *const Server) };
@@ -224,11 +225,11 @@ pub extern "C" fn dwebble_rws_server_send_text(
 /// Disconnect a specific connection.
 #[no_mangle]
 pub extern "C" fn dwebble_rws_server_disconnect(
-    handle: DwebbleServerHandle,
-    connection_id: DwebbleConnectionId,
-) -> DwebbleResult {
+    handle: DwebbleWSServerHandle,
+    connection_id: DwebbleWSConnectionId,
+) -> DwebbleWSResult {
     if handle.is_null() {
-        return DwebbleResult::InvalidHandle;
+        return DwebbleWSResult::InvalidHandle;
     }
 
     let server = unsafe { &*(handle as *const Server) };
@@ -237,7 +238,7 @@ pub extern "C" fn dwebble_rws_server_disconnect(
 
 /// Get the actual port the server is listening to.
 #[no_mangle]
-pub extern "C" fn dwebble_rws_server_get_port(handle: DwebbleServerHandle) -> u16 {
+pub extern "C" fn dwebble_rws_server_get_port(handle: DwebbleWSServerHandle) -> u16 {
     if handle.is_null() {
         return 0;
     }
@@ -248,7 +249,7 @@ pub extern "C" fn dwebble_rws_server_get_port(handle: DwebbleServerHandle) -> u1
 
 /// Get the number of active connections.
 #[no_mangle]
-pub extern "C" fn dwebble_rws_server_get_connection_count(handle: DwebbleServerHandle) -> usize {
+pub extern "C" fn dwebble_rws_server_get_connection_count(handle: DwebbleWSServerHandle) -> usize {
     if handle.is_null() {
         return 0;
     }
@@ -259,7 +260,7 @@ pub extern "C" fn dwebble_rws_server_get_connection_count(handle: DwebbleServerH
 
 /// Get server info string. Caller must free with `dwebble_rws_free_string`.
 #[no_mangle]
-pub extern "C" fn dwebble_rws_server_info(handle: DwebbleServerHandle) -> *mut c_char {
+pub extern "C" fn dwebble_rws_server_info(handle: DwebbleWSServerHandle) -> *mut c_char {
     if handle.is_null() {
         return ptr::null_mut();
     }
