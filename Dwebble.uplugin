@@ -1,15 +1,15 @@
 ﻿{
 	"FileVersion": 3,
 	"Version": 1,
-	"VersionName": "1.0",
+	"VersionName": "0.1.0",
 	"FriendlyName": "Dwebble",
-	"Description": "",
-	"Category": "Other",
-	"CreatedBy": " tarnishablec@outlook.com",
+	"Description": "High-performance WebSocket using Rust (tokio + tungstenite + rustls)",
+	"Category": "Networking",
+	"CreatedBy": "tarnishablec@outlook.com",
 	"CreatedByURL": "https://github.com/nulla-sutra",
 	"DocsURL": "",
 	"MarketplaceURL": "",
-	"CanContainContent": true,
+	"CanContainContent": false,
 	"IsBetaVersion": true,
 	"IsExperimentalVersion": false,
 	"Installed": false,
@@ -17,7 +17,7 @@
 		{
 			"Name": "Dwebble",
 			"Type": "Runtime",
-			"LoadingPhase": "Default"
+			"LoadingPhase": "PreDefault"
 		}
 	]
 }

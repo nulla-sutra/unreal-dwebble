@@ -1,20 +1,48 @@
-﻿// Copyright Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 2024 tarnishablec. All Rights Reserved.
 
 #include "Dwebble.h"
+#include "Interfaces/IPluginManager.h"
+#include "Misc/Paths.h"
+#include "HAL/PlatformProcess.h"
 
 #define LOCTEXT_NAMESPACE "FDwebbleModule"
 
+void* GDwebbleRwsDllHandle = nullptr;
+
 void FDwebbleModule::StartupModule()
 {
-	// This code will execute after your module is loaded into memory; the exact timing is specified in the .uplugin file per-module
+	// Load the Rust DLL
+	const FString PluginDir = IPluginManager::Get().FindPlugin(TEXT("Dwebble"))->GetBaseDir();
+	const FString DllPath = FPaths::Combine(PluginDir, TEXT("Binaries/Win64/dwebble_rws.dll"));
+
+	if (FPaths::FileExists(DllPath))
+	{
+		GDwebbleRwsDllHandle = FPlatformProcess::GetDllHandle(*DllPath);
+		if (GDwebbleRwsDllHandle)
+		{
+			UE_LOG(LogTemp, Log, TEXT("Dwebble: Loaded dwebble_rws.dll from %s"), *DllPath);
+		}
+		else
+		{
+			UE_LOG(LogTemp, Error, TEXT("Dwebble: Failed to load dwebble_rws.dll from %s"), *DllPath);
+		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Dwebble: dwebble_rws.dll not found at %s"), *DllPath);
+	}
 }
 
 void FDwebbleModule::ShutdownModule()
 {
-	// This function may be called during shutdown to clean up your module.  For modules that support dynamic reloading,
-	// we call this function before unloading the module.
+	if (GDwebbleRwsDllHandle)
+	{
+		FPlatformProcess::FreeDllHandle(GDwebbleRwsDllHandle);
+		GDwebbleRwsDllHandle = nullptr;
+		UE_LOG(LogTemp, Log, TEXT("Dwebble: Unloaded dwebble_rws.dll"));
+	}
 }
 
 #undef LOCTEXT_NAMESPACE
-	
+
 IMPLEMENT_MODULE(FDwebbleModule, Dwebble)

@@ -1,53 +1,49 @@
-﻿// Copyright Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 2026 tarnishablec. All Rights Reserved.
 
+using System.IO;
 using UnrealBuildTool;
+// ReSharper disable RedundantExplicitArrayCreation
 
 public class Dwebble : ModuleRules
 {
 	public Dwebble(ReadOnlyTargetRules Target) : base(Target)
 	{
-		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
-		
-		PublicIncludePaths.AddRange(
-			new string[] {
-				// ... add public include paths required here ...
-			}
-			);
-				
-		
-		PrivateIncludePaths.AddRange(
-			new string[] {
-				// ... add other private include paths required here ...
-			}
-			);
-			
-		
+		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
+
+		// Add Rust FFI header include a path
+		var RustIncludeDir = Path.Combine(PluginDirectory, "dwebble-rws", "include");
+		PublicIncludePaths.Add(RustIncludeDir);
+
 		PublicDependencyModuleNames.AddRange(
 			new string[]
 			{
 				"Core",
-				// ... add other public dependencies that you statically link with here ...
 			}
-			);
-			
-		
+		);
+
 		PrivateDependencyModuleNames.AddRange(
 			new string[]
 			{
 				"CoreUObject",
 				"Engine",
-				"Slate",
-				"SlateCore",
-				// ... add private dependencies that you statically link with here ...	
+				"Projects",
 			}
-			);
+		);
+
+		// Find Rust DLL and import a library
+		var BinariesDir = Path.Combine(PluginDirectory, "Binaries", "Win64");
+		const string DllName = "dwebble_rws.dll";
+		const string LibName = "dwebble_rws.dll.lib";
+		var DllPath = Path.Combine(BinariesDir, DllName);
+		var LibPath = Path.Combine(BinariesDir, LibName);
+
+		if (!File.Exists(DllPath) || !File.Exists(LibPath)) return;
+
+		// Add an import library for linking
+		PublicAdditionalLibraries.Add(LibPath);
 		
-		
-		DynamicallyLoadedModuleNames.AddRange(
-			new string[]
-			{
-				// ... add any modules that your module loads dynamically here ...
-			}
-			);
+		// Setup delay load DLL
+		PublicDelayLoadDLLs.Add(DllName);
+		RuntimeDependencies.Add(DllPath);
 	}
 }
