@@ -1,3 +1,7 @@
+/*
+ * Copyright 2019-Present tarnishablec. All Rights Reserved.
+ */
+
 //! WebSocket Server implementation
 
 use std::collections::HashMap;

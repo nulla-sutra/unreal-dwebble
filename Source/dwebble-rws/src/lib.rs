@@ -1,3 +1,7 @@
+/*
+ * Copyright 2019-Present tarnishablec. All Rights Reserved.
+ */
+
 //! FFI entry points for dwebble-rws
 //!
 //! All functions use the `dwebble_rws_` prefix to avoid naming conflicts.

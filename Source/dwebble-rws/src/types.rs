@@ -1,3 +1,7 @@
+/*
+ * Copyright 2019-Present tarnishablec. All Rights Reserved.
+ */
+
 //! FFI types shared between Rust and C++
 
 use std::ffi::{c_char, c_void};

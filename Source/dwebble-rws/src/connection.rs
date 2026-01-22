@@ -1,3 +1,7 @@
+/*
+ * Copyright 2019-Present tarnishablec. All Rights Reserved.
+ */
+
 //! WebSocket connection management
 
 use std::sync::atomic::{AtomicU64, Ordering};

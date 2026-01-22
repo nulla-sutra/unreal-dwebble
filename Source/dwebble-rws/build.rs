@@ -1,3 +1,7 @@
+/*
+ * Copyright 2019-Present tarnishablec. All Rights Reserved.
+ */
+
 //! Build script for dwebble-rws
 //!
 //! Generates a C++ header using cbindgen.

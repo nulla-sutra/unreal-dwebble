@@ -1,3 +1,7 @@
+/*
+ * Copyright 2019-Present tarnishablec. All Rights Reserved.
+ */
+
 //! TLS configuration using rustls with ring
 
 use std::fs::File;
