@@ -10,7 +10,7 @@ Unreal Engine's built-in [WebSocketNetworking](https://github.com/EpicGames/Unre
 
 1. **No Subprotocol Support** - `IWebSocketServer::Init()` doesn't accept subprotocol parameters, making it incompatible with protocols like MCP (Model Context Protocol) that require specific subprotocols.
 
-2. **No Ephemeral Port Support** - `IWebSocketServer::Init()` doesn't accept an ephemeral port (port 0), forcing developers to hardcode ports or implement custom port management. [Unreal WebSocketNetworking Issue](https://github.com/EpicGames/UnrealEngine/pull/14298).
+2. **No Actual Port Retrieval** - `IWebSocketServer` supports ephemeral port (port 0), but provides no API to retrieve the actual assigned port after binding. See [related PR](https://github.com/EpicGames/UnrealEngine/pull/14298).
 
 ## Solution
 
@@ -25,8 +25,8 @@ Dwebble provides a clean, standalone WebSocket server implementation using Rust'
 - ✅ **Subprotocol Support** - Full WebSocket subprotocol negotiation
 - ✅ **Native TLS** - Built-in TLS with rustls (ring crypto)
 - ✅ **Cross-Platform** - Windows x64/ARM64 support
-- ✅ **Zero UE Dependencies** - Standalone, doesn't interfere with existing networking
-- ✅ **High Performance** - Rust's zero-cost abstractions and tokio's efficient async I/O
+- ✅ **Zero UE Dependencies** – Standalone, doesn't interfere with existing networking
+- ✅ **High Performance** – Rust's zero-cost abstractions and tokio's efficient async I/O
 - ✅ **Simple API** - Clean C++ interface with UE-friendly types
 
 ## Architecture
