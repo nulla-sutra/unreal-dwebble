@@ -4,7 +4,7 @@ High-performance WebSocket plugin for Unreal Engine, powered by Rust.
 
 > ⚠️ **Note**: Currently only tested on Windows. Other platforms (Linux, macOS) may work but are not yet verified.
 
-## Why Dwebble?
+## Why Dwebble exists?
 
 Unreal Engine's built-in [WebSocketNetworking](https://github.com/EpicGames/UnrealEngine/tree/release/Engine/Plugins/Experimental/WebSocketNetworking) plugin has significant limitations:
 
@@ -15,7 +15,7 @@ Unreal Engine's built-in [WebSocketNetworking](https://github.com/EpicGames/Unre
 <details>
     <summary style="background-color:black; color:black;">
     </summary>
-    Honestly, I just don't want to write a single extra line of C++.
+    Why rust? Honestly, I just don't want to write a single extra line of C++.
 </details>
 
 ## Solution
