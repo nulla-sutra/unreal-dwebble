@@ -128,23 +128,30 @@ Server->Disconnect(ConnectionId);
 ## Building the Rust Library
 
 Requires:
-- Rust toolchain (rustup)
+- Rust toolchain (rustup), with the `x86_64-pc-windows-msvc` target installed
+- Visual Studio C++ build tools and the Windows SDK
 - cargo-make (`cargo install cargo-make`)
 
-```bash
+Close Unreal Editor before replacing a DLL it has loaded. From the plugin directory, build the Rust library before building the Unreal project:
+
+```powershell
 cd Source/dwebble-rws
 
-# Debug build
-cargo make dev
+# Debug build for Windows x64 (MSVC)
+cargo make --env TARGET=x86_64-pc-windows-msvc dev
 
-# Release build
-cargo make release
-
-# Cross-compile for ARM64 Windows
-cargo make release -e TARGET=aarch64-pc-windows-msvc
+# Release build for Windows x64 (MSVC)
+cargo make --env TARGET=x86_64-pc-windows-msvc release
 ```
 
-The build script automatically copies the DLL to `Binaries/Win64/`.
+Choose either build configuration. The crate uses `cdylib`, producing a DLL and its import library:
+
+- `dwebble_rws.dll`: the Rust implementation, loaded at runtime.
+- `dwebble_rws.dll.lib`: the MSVC import library used when linking the Unreal module.
+
+The task copies both files from `Source/dwebble-rws/target/x86_64-pc-windows-msvc/<debug-or-release>/` to the plugin's `Binaries/Win64/` directory. It fails if either artifact is missing or a copy fails. Running `cargo build` alone does not perform this copy.
+
+Both files must exist before building the Unreal project. `DwebbleWebSocket.Build.cs` checks for them and reports the missing path and build command. The module delay-loads the DLL, and `RuntimeDependencies` stages it for packaged builds. Distribute the DLL with the plugin; the import library is needed to build the Unreal module, but not to run it.
 
 ## Module Dependencies
 

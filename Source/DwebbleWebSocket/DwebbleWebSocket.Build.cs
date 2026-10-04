@@ -37,7 +37,18 @@ public class DwebbleWebSocket : ModuleRules
 		var DllPath = Path.Combine(BinariesDir, DllName);
 		var LibPath = Path.Combine(BinariesDir, LibName);
 
-		if (!File.Exists(DllPath) || !File.Exists(LibPath)) return;
+		// Missing artifacts must not silently remove the Rust FFI symbols from the link.
+		foreach (var RequiredPath in new[] { DllPath, LibPath })
+		{
+			if (!File.Exists(RequiredPath))
+			{
+				var RustSourceDir = Path.Combine(PluginDirectory, "Source", "dwebble-rws");
+				throw new BuildException(
+					$"Dwebble Rust artifact is missing: '{RequiredPath}'. " +
+					$"Run 'cargo make --env TARGET=x86_64-pc-windows-msvc release' in '{RustSourceDir}' " +
+					$"to build and copy both '{DllName}' and '{LibName}' to '{BinariesDir}' before building Unreal.");
+			}
+		}
 
 		// Add an import library for linking
 		PublicAdditionalLibraries.Add(LibPath);

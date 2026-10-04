@@ -2,7 +2,7 @@
 # Usage:
 #   cargo make dev                          - Debug build + copy DLL
 #   cargo make release                      - Release build + copy DLL
-#   cargo make release -e TARGET=<triple>   - Cross-compile release
+#   cargo make --env TARGET=<triple> release - Build for an explicit target
 
 [config]
 default_to_workspace = false
@@ -27,6 +27,8 @@ args = ["build", "--release", "@@split(CARGO_BUILD_ARGS, )"]
 private = true
 script_runner = "@duckscript"
 script = '''
+exit_on_error true
+
 crate_dir = get_env CARGO_MAKE_WORKING_DIRECTORY
 profile = get_env PROFILE
 target = get_env TARGET
@@ -53,31 +55,36 @@ source_dir = dirname ${crate_dir}
 plugin_dir = dirname ${source_dir}
 bin_dir = join_path ${plugin_dir} Binaries ${platform_dir}
 
-# Create output directory
-mkdir ${bin_dir}
-
 echo Source: ${target_dir}
 echo Target: ${bin_dir}
 
-# Copy DLL
+# Validate both artifacts before replacing either installed file.
 dll_src = join_path ${target_dir} dwebble_rws.dll
-dll_dst = join_path ${bin_dir} dwebble_rws.dll
-if is_path_exists ${dll_src}
-    cp ${dll_src} ${dll_dst}
-    echo "  Copied: dwebble_rws.dll"
-else
-    echo "  Not found: dwebble_rws.dll"
+lib_src = join_path ${target_dir} dwebble_rws.dll.lib
+if not is_file ${dll_src}
+    trigger_error "Missing Rust DLL: ${dll_src}. Build the cdylib for a Windows MSVC target first."
+end
+if not is_file ${lib_src}
+    trigger_error "Missing Rust import library: ${lib_src}. Build the cdylib for a Windows MSVC target first."
 end
 
-# Copy import library
-lib_src = join_path ${target_dir} dwebble_rws.dll.lib
-lib_dst = join_path ${bin_dir} dwebble_rws.dll.lib
-if is_path_exists ${lib_src}
-    cp ${lib_src} ${lib_dst}
-    echo "  Copied: dwebble_rws.dll.lib"
-else
-    echo "  Not found: dwebble_rws.dll.lib"
+if not mkdir ${bin_dir}
+    trigger_error "Cannot create output directory: ${bin_dir}"
 end
+
+# Copy DLL
+dll_dst = join_path ${bin_dir} dwebble_rws.dll
+if not cp ${dll_src} ${dll_dst}
+    trigger_error "Failed to copy Rust DLL to: ${dll_dst}"
+end
+echo "  Copied: dwebble_rws.dll"
+
+# Copy import library
+lib_dst = join_path ${bin_dir} dwebble_rws.dll.lib
+if not cp ${lib_src} ${lib_dst}
+    trigger_error "Failed to copy Rust import library to: ${lib_dst}"
+end
+echo "  Copied: dwebble_rws.dll.lib"
 
 echo Done!
 '''
