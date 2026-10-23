@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "DwebbleTypes.h"
+#include "DwebbleWebSocket/DwebbleTypes.h"
 
 namespace Dwebble::WebSocket
 {

@@ -1,6 +1,6 @@
 ﻿// Copyright 2024 tarnishablec. All Rights Reserved.
 
-#include "DwebbleWebSocket.h"
+#include "DwebbleWebSocket/DwebbleWebSocket.h"
 #include "Interfaces/IPluginManager.h"
 #include "Misc/Paths.h"
 #include "HAL/PlatformProcess.h"

@@ -8,7 +8,10 @@ public class DwebbleWebSocket : ModuleRules
 {
 	public DwebbleWebSocket(ReadOnlyTargetRules Target) : base(Target)
 	{
-		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
+		PCHUsage = PCHUsageMode.Default;
+
+		// Resolve module-qualified headers through Unreal's parent include paths.
+		bLegacyParentIncludePaths = true;
 
 		// Add Rust FFI header `include` (dwebble-rws is now under Source/)
 		var RustIncludeDir = Path.Combine(PluginDirectory, "Source", "dwebble-rws", "include");

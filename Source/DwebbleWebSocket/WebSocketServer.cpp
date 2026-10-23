@@ -1,6 +1,6 @@
 // Copyright 2024 tarnishablec. All Rights Reserved.
 
-#include "WebSocketServer.h"
+#include "DwebbleWebSocket/WebSocketServer.h"
 #include "dwebble_rws.h"
 #include "HAL/PlatformProcess.h"
 
