@@ -8,7 +8,7 @@ public class DwebbleWebSocket : ModuleRules
 {
 	public DwebbleWebSocket(ReadOnlyTargetRules Target) : base(Target)
 	{
-		PCHUsage = PCHUsageMode.Default;
+		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 
 		// Resolve module-qualified headers through Unreal's parent include paths.
 		bLegacyParentIncludePaths = true;
